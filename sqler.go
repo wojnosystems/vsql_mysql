@@ -22,7 +22,7 @@ import (
 
 // mySQL is largely a facade around Go's database/sql driver.
 //
-// This implementation satisfies all of the interfaces required for un-nested transactions using MySQL. I do have plans to implement a version that supports SAVEPOINTs and that will likely be a different implementation satisfying the NestedTransactionStarter
+// This implementation satisfies all of the interfaces required for un-nested transactions using MySQL. I do have plans to implement a version that supports SAVEPOINTs and that will likely be a different implementation satisfying the TransactionNestedStarter
 //
 // The idea is to make everything an interface to allow for extension and carefully returned values from the interfaces where they make sense.
 //

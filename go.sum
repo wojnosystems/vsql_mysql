@@ -11,6 +11,8 @@ github.com/stretchr/testify v1.3.1-0.20190311161405-34c6fa2dc709 h1:Ko2LQMrRU+Oy
 github.com/stretchr/testify v1.3.1-0.20190311161405-34c6fa2dc709/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/wojnosystems/vsql v0.0.3 h1:3Ba0jqbtukgo3Thc42iqr34P0DZssPSsJH3uljW982g=
 github.com/wojnosystems/vsql v0.0.3/go.mod h1:qHjmxHNfY9ElgwY1A6MSLkSMSIJCaR3Zsxln0k1c294=
+github.com/wojnosystems/vsql v0.0.4 h1:/VugFwcZDhu/Fmr3jZbSaDw+Ipq/sHNKWrh/0GzTnt4=
+github.com/wojnosystems/vsql v0.0.4/go.mod h1:qHjmxHNfY9ElgwY1A6MSLkSMSIJCaR3Zsxln0k1c294=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 google.golang.org/appengine v1.5.0 h1:KxkO13IPW4Lslp2bz+KHP2E3gtFlrIGNThxkZQ3g+4c=
