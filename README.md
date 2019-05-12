@@ -170,8 +170,6 @@ I started learning Go for a work project not too long ago. I've been struggling 
 
 One of my biggest pet peeves was in writing a function that implemented a database request and took in a `*sql.DB`. But that means that the code assumes that it's only run OUTSIDE of a transaction. If you wanted that call to run within a transaction, you had to write the method over again or take in an optional argument to represent an optional transaction state. But this is error-prone and extremely un-clean code. The method implementing a database call should not really care if it's in a transaction or not and should take in a vquery.Queryer instead of an object that advertises details about transactions.
 
-To overcome these problems, this library is essentially an interface facade that breaks up the parts based on functionality (imagine that!) and capability. For example, I was extremely perturbed using the database.sql library that I had to cast to a txn type because my calls could either be top-levels themselves OR transactions. These interfaces will hide the transaction status.
-
 However, because some databases (cough!--MYSQL--cough!) don't support nested transactions, I've split the interfaces based on the capabilities of the underlying database. One supports Nested Transactions, the other does not. The ONLY difference is that the NestedTransactionStarter returns a NestedTransactioner instead of just a Transactioner. This will help ensure that you write code to conform to the interfaces. If you decide you want to use nested transactions and move to a database that supports them, it should be as easy as changing which interfaces you use and adding the Begin calls that you need. However, the library that is implementing the vsql interfaces will need to support this.
 
 ## Contexts
@@ -296,9 +294,11 @@ if err != nil {
 }
 ```
 
-This begins a transaction, inserts the row, counts the row, then rolls the transaction back. This means the insert is undone. The rollback occurs when rollback is set to true. By default, it is false, so if you do nothing and have the transaction return, it will be committed (unless an error occurs).
+This begins a transaction, inserts the row, counts the row, then rolls the transaction back. If you wanted to commit the transaction, the function needs to `return true, nil`. Because return is called, this means the insert is undone. The rollback occurs when commit is not actively set to true. By default, commit is false, so if you do nothing and have the transaction return, it will be rolled back.
 
 If you return an error, a rollback will be issued as well, but the error will be propagated up and returned to the caller of vsql.Txn.
+
+If your code emits a panic, your transaction will be rolled back, and the panic will be re-panic'ed after the rollback
 
 # License 
 

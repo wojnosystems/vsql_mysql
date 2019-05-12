@@ -120,10 +120,11 @@ func TestTransaction_Rollback(t *testing.T) {
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
-		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (rollback bool, err error) {
+		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
 			_, err = tx.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
 			if err != nil {
 				t.Error("Error not expected when inserting data")
+				return false, err
 			}
 
 			count, err := aggregator.Count(context.Background(), tx, param.New("SELECT COUNT(*) FROM `"+tableName+"`"))
@@ -133,8 +134,6 @@ func TestTransaction_Rollback(t *testing.T) {
 			if 1 != count {
 				t.Errorf(`Expected to insert 1 record, but inserted %d`, count)
 			}
-
-			rollback = true
 			return
 		})
 		if err != nil {
@@ -158,12 +157,12 @@ func TestTransaction_Commit(t *testing.T) {
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
-		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (rollback bool, err error) {
+		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
 			_, err = tx.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
 			if err != nil {
 				t.Error("Error not expected when inserting data")
 			}
-			return
+			return true, err
 		})
 		if err != nil {
 			t.Fatal("error starting transaction")
@@ -186,7 +185,7 @@ func TestTransactionStatement_Commit(t *testing.T) {
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
-		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (rollback bool, err error) {
+		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
 			var s vstmt.Statementer
 			s, err = tx.Prepare(context.Background(), param.New("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)"))
 			if err != nil {
@@ -194,7 +193,7 @@ func TestTransactionStatement_Commit(t *testing.T) {
 			}
 
 			_, err = s.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
-			return
+			return true, err
 		})
 		if err != nil {
 			t.Fatal("error starting transaction")
@@ -217,7 +216,7 @@ func TestTransactionStatement_Rollback(t *testing.T) {
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
-		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (rollback bool, err error) {
+		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
 			var s vstmt.Statementer
 			s, err = tx.Prepare(context.Background(), param.New("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)"))
 			if err != nil {
@@ -225,7 +224,7 @@ func TestTransactionStatement_Rollback(t *testing.T) {
 			}
 
 			_, err = s.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
-			return true, nil
+			return
 		})
 		if err != nil {
 			t.Fatal("error starting transaction")
