@@ -21,6 +21,8 @@ import (
 	"github.com/wojnosystems/vsql/vrow"
 	"github.com/wojnosystems/vsql/vrows"
 	"github.com/wojnosystems/vsql/vstmt"
+	context2 "github.com/wojnosystems/vsql_engine/context"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -31,7 +33,9 @@ import (
 // A basic test for database connectivity
 func TestMySQL_Ping(t *testing.T) {
 	// create a table
-	err := mustConnect(t).Ping(context.Background())
+	c := mustConnect(t)
+	defer func() { _ = c.Close() }()
+	err := c.Ping(context.Background())
 	if err != nil {
 		t.Error("Unable to ping the MySQL database server")
 	}
@@ -62,6 +66,7 @@ func TestMySQL_InsertQuery(t *testing.T) {
 	}
 
 	c := mustConnect(t)
+	defer func() { _ = c.Close() }()
 	mustTemporaryTable(t, c, func(tableName string) {
 		queryString := fmt.Sprint(`INSERT INTO `, vsql.BT(tableName), ` (name, age) VALUES (:name, :age)`)
 		for i := range data {
@@ -117,6 +122,7 @@ func TestMySQL_InsertQuery(t *testing.T) {
 func TestTransaction_Rollback(t *testing.T) {
 	// create a connection
 	c := mustConnect(t)
+	defer func() { _ = c.Close() }()
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
@@ -154,6 +160,7 @@ func TestTransaction_Rollback(t *testing.T) {
 func TestTransaction_Commit(t *testing.T) {
 	// create a connection
 	c := mustConnect(t)
+	defer func() { _ = c.Close() }()
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
@@ -182,6 +189,7 @@ func TestTransaction_Commit(t *testing.T) {
 func TestTransactionStatement_Commit(t *testing.T) {
 	// create a connection
 	c := mustConnect(t)
+	defer func() { _ = c.Close() }()
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
@@ -213,6 +221,7 @@ func TestTransactionStatement_Commit(t *testing.T) {
 func TestTransactionStatement_Rollback(t *testing.T) {
 	// create a connection
 	c := mustConnect(t)
+	defer func() { _ = c.Close() }()
 
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
@@ -248,7 +257,7 @@ func TestTransactionStatement_Rollback(t *testing.T) {
 //
 // Permissions: The MYSQL_USER you use needs to have the ability to add and remove tables
 func mustConnect(t *testing.T) (s vsql.SQLer) {
-	s = NewMySQL(func() (db *sql.DB) {
+	engine := NewMySQL(func() (db *sql.DB) {
 		cfg := mysql.Config{
 			User:                 os.Getenv("MYSQL_USER"),
 			Passwd:               os.Getenv("MYSQL_PASSWORD"),
@@ -269,7 +278,14 @@ func mustConnect(t *testing.T) (s vsql.SQLer) {
 		}
 		return
 	})
-	return
+	engine.GlobalAdd(func(c context2.Contexter) {
+		c.KeyValues().Set("mykey", "myvalue")
+	})
+	engine.RowMiddleware().Add(func(c context2.Contexter, b vrows.Rower) vrows.Rower {
+		log.Println(c.KeyValues().MustGet("mykey").(string))
+		return b
+	})
+	return engine
 }
 
 // mustCreateTable creates a table with a "random" name (based on the current time) testing fatals are triggered if this fails
@@ -290,7 +306,7 @@ func mustDropTable(t *testing.T, execer vquery.Execer, tableName string) {
 		// do nothing
 		return
 	}
-	_, err := execer.Exec(context.Background(), param.NewNamedWithData("DROP TABLE `"+tableName+"`", vsql.H{"tableName": tableName}))
+	_, err := execer.Exec(context.Background(), param.New("DROP TABLE `"+tableName+"`"))
 	if err != nil {
 		t.Fatalf(`Unable to drop table named: "%s". Err: %#v`, tableName, err)
 	}

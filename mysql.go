@@ -16,14 +16,8 @@
 package vsql_mysql
 
 import (
-	"context"
 	"database/sql"
-	"github.com/wojnosystems/vsql"
-	"github.com/wojnosystems/vsql/param"
-	"github.com/wojnosystems/vsql/vresult"
-	"github.com/wojnosystems/vsql/vrows"
-	"github.com/wojnosystems/vsql/vstmt"
-	"github.com/wojnosystems/vsql/vtxn"
+	"github.com/wojnosystems/vsql_engine/go_sql"
 )
 
 // Creates a new MySQL connection manager
@@ -33,68 +27,6 @@ import (
 //
 // @param driverFactory is where you create your traditional Go-lang database/sql.DB object. If nil is returned for db, then nil will be returned by this method
 // @return s, the SQLer object. Note, due to the way MySQL works, it does not support Nested transactions and, as such, this method does not return an object that supports that interface.
-func NewMySQL(driverFactory func() (db *sql.DB)) (s vsql.SQLer) {
-	m := &mySQL{}
-	m.db = driverFactory()
-	if m.db == nil {
-		return nil
-	}
-	return m
-}
-
-// Begin see github.com/wojnosystems/vsql/transactions.go#TransactionStarter
-func (m *mySQL) Begin(ctx context.Context, txOp vtxn.TxOptioner) (n vsql.QueryExecTransactioner, err error) {
-	var txo *sql.TxOptions
-	if txOp != nil {
-		txo = txOp.ToTxOptions()
-	}
-	t := &mySQLtx{}
-	t.tx, err = m.db.BeginTx(ctx, txo)
-	return t, nil
-}
-
-// Ping see github.com/wojnosystems/vsql/pinger/pinger.go#Pinger
-func (m *mySQL) Ping(ctx context.Context) error {
-	return m.db.PingContext(ctx)
-}
-
-// Query see github.com/wojnosystems/vsql/vquery/query.go#Queryer
-func (m *mySQL) Query(ctx context.Context, query param.Queryer) (rRows vrows.Rowser, err error) {
-	q, ps, err := query.Interpolate(&mySQLParamInterpolateStrategyDefault)
-	if err != nil {
-		return nil, err
-	}
-	r := &vrows.RowsImpl{}
-	r.SqlRows, err = m.db.QueryContext(ctx, q, ps...)
-	return r, err
-}
-
-// Insert see github.com/wojnosystems/vsql/vquery/query.go#Inserter
-func (m *mySQL) Insert(ctx context.Context, query param.Queryer) (res vresult.InsertResulter, err error) {
-	q, ps, err := query.Interpolate(&mySQLParamInterpolateStrategyDefault)
-	if err != nil {
-		return nil, err
-	}
-	sqlRes := &vresult.QueryResult{}
-	sqlRes.SqlRes, err = m.db.ExecContext(ctx, q, ps...)
-	return sqlRes, err
-}
-
-// Exec see github.com/wojnosystems/vsql/vquery/query.go#Execer
-func (m *mySQL) Exec(ctx context.Context, query param.Queryer) (res vresult.Resulter, err error) {
-	q, ps, err := query.Interpolate(&mySQLParamInterpolateStrategyDefault)
-	if err != nil {
-		return nil, err
-	}
-	sqlRes := &vresult.QueryResult{}
-	sqlRes.SqlRes, err = m.db.ExecContext(ctx, q, ps...)
-	return sqlRes, err
-}
-
-// Prepare see github.com/wojnosystems/vsql/vstmt/statement.go#Preparer
-func (m *mySQL) Prepare(ctx context.Context, query param.Queryer) (stmtr vstmt.Statementer, err error) {
-	q := query.SQLQuery(&mySQLParamInterpolateStrategyDefault)
-	mStmt := &mysqlStatement{}
-	mStmt.stmt, err = m.db.PrepareContext(ctx, q)
-	return mStmt, err
+func NewMySQL(driverFactory func() (db *sql.DB)) (engine go_sql.SQLEnginer) {
+	return go_sql.New(mySQLParamInterpolateStrategyFactoryDefault, driverFactory)
 }

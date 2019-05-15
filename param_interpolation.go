@@ -15,7 +15,9 @@
 
 package vsql_mysql
 
-import "github.com/wojnosystems/vsql/param"
+import (
+	"github.com/wojnosystems/vsql/param"
+)
 
 // MySQL driver uses ? to interpolate and not positional parameters like postgres
 // This is the default strategy used by go's database/sql so there is really nothing to do here
@@ -32,3 +34,6 @@ func (m *mySQLParamInterpolateStrategy) InsertPlaceholderIntoSQL() string {
 
 // mySQLParamInterpolateStrategyDefault is the default parameter strategy
 var mySQLParamInterpolateStrategyDefault = mySQLParamInterpolateStrategy{}
+var mySQLParamInterpolateStrategyFactoryDefault = func() param.InterpolateStrategy {
+	return &mySQLParamInterpolateStrategyDefault
+}
