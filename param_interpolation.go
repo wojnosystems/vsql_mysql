@@ -16,7 +16,7 @@
 package vsql_mysql
 
 import (
-	"github.com/wojnosystems/vsql/param"
+	"github.com/wojnosystems/vsql/interpolation_strategy"
 )
 
 // MySQL driver uses ? to interpolate and not positional parameters like postgres
@@ -24,7 +24,7 @@ import (
 // MySQL doesn't use positional arguments, so there is no need to store state.
 // I'm creating a global strategy and using it to avoid creating an object over and over again. This is OK as there's no state.
 type mySQLParamInterpolateStrategy struct {
-	param.InterpolateStrategy
+	interpolation_strategy.InterpolateStrategy
 }
 
 // InsertPlaceholderIntoSQL injects a question mark (?) whenever a variable is intended to be substituted into the SQL call via parametrization
@@ -34,6 +34,6 @@ func (m *mySQLParamInterpolateStrategy) InsertPlaceholderIntoSQL() string {
 
 // mySQLParamInterpolateStrategyDefault is the default parameter strategy
 var mySQLParamInterpolateStrategyDefault = mySQLParamInterpolateStrategy{}
-var mySQLParamInterpolateStrategyFactoryDefault = func() param.InterpolateStrategy {
+var mySQLParamInterpolateStrategyFactoryDefault = func() interpolation_strategy.InterpolateStrategy {
 	return &mySQLParamInterpolateStrategyDefault
 }

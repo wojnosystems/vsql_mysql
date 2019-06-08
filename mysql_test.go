@@ -16,12 +16,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/wojnosystems/vsql"
 	"github.com/wojnosystems/vsql/aggregator"
-	"github.com/wojnosystems/vsql/param"
+	"github.com/wojnosystems/vsql/vparam"
 	"github.com/wojnosystems/vsql/vquery"
 	"github.com/wojnosystems/vsql/vrow"
 	"github.com/wojnosystems/vsql/vrows"
 	"github.com/wojnosystems/vsql/vstmt"
-	context2 "github.com/wojnosystems/vsql_engine/context"
+	"github.com/wojnosystems/vsql_engine"
+	"github.com/wojnosystems/vsql_engine/engine_context"
 	"log"
 	"os"
 	"strings"
@@ -70,7 +71,7 @@ func TestMySQL_InsertQuery(t *testing.T) {
 	mustTemporaryTable(t, c, func(tableName string) {
 		queryString := fmt.Sprint(`INSERT INTO `, vsql.BT(tableName), ` (name, age) VALUES (:name, :age)`)
 		for i := range data {
-			q := param.NewNamedWithData(queryString,
+			q := vparam.NewNamedWithData(queryString,
 				vsql.H{
 					"name": data[i].name,
 					"age":  data[i].age,
@@ -93,7 +94,7 @@ func TestMySQL_InsertQuery(t *testing.T) {
 		queryString = fmt.Sprint(`SELECT name, age FROM `, vsql.BT(tableName), ` ORDER BY id`)
 		err := vrow.QueryEach(c,
 			context.Background(),
-			param.NewAppend(queryString),
+			vparam.NewAppend(queryString),
 			func(r vrows.Rower) (stop bool, err error) {
 				ur := userRecord{}
 				err = r.Scan(&ur.name, &ur.age)
@@ -127,13 +128,13 @@ func TestTransaction_Rollback(t *testing.T) {
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
 		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
-			_, err = tx.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
+			_, err = tx.Insert(context.Background(), vparam.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
 			if err != nil {
 				t.Error("Error not expected when inserting data")
 				return false, err
 			}
 
-			count, err := aggregator.Count(context.Background(), tx, param.New("SELECT COUNT(*) FROM `"+tableName+"`"))
+			count, err := aggregator.Count(context.Background(), tx, vparam.New("SELECT COUNT(*) FROM `"+tableName+"`"))
 			if err != nil {
 				t.Error("Error not expected when counting data")
 			}
@@ -146,7 +147,7 @@ func TestTransaction_Rollback(t *testing.T) {
 			t.Fatal("error starting transaction")
 		}
 
-		count, err := aggregator.Count(context.Background(), c, param.New("SELECT COUNT(*) FROM `"+tableName+"`"))
+		count, err := aggregator.Count(context.Background(), c, vparam.New("SELECT COUNT(*) FROM `"+tableName+"`"))
 		if err != nil {
 			t.Error("Error not expected when counting data")
 		}
@@ -165,7 +166,7 @@ func TestTransaction_Commit(t *testing.T) {
 	// create a table
 	mustTemporaryTable(t, c, func(tableName string) {
 		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
-			_, err = tx.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
+			_, err = tx.Insert(context.Background(), vparam.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
 			if err != nil {
 				t.Error("Error not expected when inserting data")
 			}
@@ -175,7 +176,7 @@ func TestTransaction_Commit(t *testing.T) {
 			t.Fatal("error starting transaction")
 		}
 
-		count, err := aggregator.Count(context.Background(), c, param.New("SELECT COUNT(*) FROM `"+tableName+"`"))
+		count, err := aggregator.Count(context.Background(), c, vparam.New("SELECT COUNT(*) FROM `"+tableName+"`"))
 		if err != nil {
 			t.Error("Error not expected when counting data")
 		}
@@ -195,19 +196,19 @@ func TestTransactionStatement_Commit(t *testing.T) {
 	mustTemporaryTable(t, c, func(tableName string) {
 		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
 			var s vstmt.Statementer
-			s, err = tx.Prepare(context.Background(), param.New("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)"))
+			s, err = tx.Prepare(context.Background(), vparam.New("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)"))
 			if err != nil {
 				t.Fatal("Error not expected when preparing data")
 			}
 
-			_, err = s.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
+			_, err = s.Insert(context.Background(), vparam.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
 			return true, err
 		})
 		if err != nil {
 			t.Fatal("error starting transaction")
 		}
 
-		count, err := aggregator.Count(context.Background(), c, param.New("SELECT COUNT(*) FROM `"+tableName+"`"))
+		count, err := aggregator.Count(context.Background(), c, vparam.New("SELECT COUNT(*) FROM `"+tableName+"`"))
 		if err != nil {
 			t.Error("Error not expected when counting data")
 		}
@@ -227,19 +228,19 @@ func TestTransactionStatement_Rollback(t *testing.T) {
 	mustTemporaryTable(t, c, func(tableName string) {
 		err := vsql.Txn(c, context.Background(), nil, func(tx vsql.QueryExecer) (commit bool, err error) {
 			var s vstmt.Statementer
-			s, err = tx.Prepare(context.Background(), param.New("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)"))
+			s, err = tx.Prepare(context.Background(), vparam.New("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)"))
 			if err != nil {
 				t.Fatal("Error not expected when preparing data")
 			}
 
-			_, err = s.Insert(context.Background(), param.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
+			_, err = s.Insert(context.Background(), vparam.NewAppendWithData("INSERT INTO `"+tableName+"` (name,age) VALUES (?,?)", "chris", 21))
 			return
 		})
 		if err != nil {
 			t.Fatal("error starting transaction")
 		}
 
-		count, err := aggregator.Count(context.Background(), c, param.New("SELECT COUNT(*) FROM `"+tableName+"`"))
+		count, err := aggregator.Count(context.Background(), c, vparam.New("SELECT COUNT(*) FROM `"+tableName+"`"))
 		if err != nil {
 			t.Error("Error not expected when counting data")
 		}
@@ -257,33 +258,47 @@ func TestTransactionStatement_Rollback(t *testing.T) {
 //
 // Permissions: The MYSQL_USER you use needs to have the ability to add and remove tables
 func mustConnect(t *testing.T) (s vsql.SQLer) {
-	engine := NewMySQL(func() (db *sql.DB) {
-		cfg := mysql.Config{
-			User:                 os.Getenv("MYSQL_USER"),
-			Passwd:               os.Getenv("MYSQL_PASSWORD"),
-			Addr:                 os.Getenv("MYSQL_ADDR"),
-			DBName:               os.Getenv("MYSQL_DBNAME"),
-			AllowNativePasswords: true,
-			AllowOldPasswords:    true,
-		}
-		if strings.HasPrefix(cfg.Addr, "unix") {
-			cfg.Net = "unix"
+	cfg := mysql.Config{
+		User:                 os.Getenv("MYSQL_USER"),
+		Passwd:               os.Getenv("MYSQL_PASSWORD"),
+		Addr:                 os.Getenv("MYSQL_ADDR"),
+		DBName:               os.Getenv("MYSQL_DBNAME"),
+		AllowNativePasswords: true,
+		AllowOldPasswords:    true,
+	}
+	if strings.HasPrefix(cfg.Addr, "unix") {
+		cfg.Net = "unix"
+	} else {
+		cfg.Net = "tcp"
+	}
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatal("unable to initialize the MySQL driver", err)
+		return nil
+	}
+
+	engine := vsql_engine.NewSingle()
+	InstallMySQL(engine, db)
+	engine.RowsNextMW().Prepend(func(ctx context.Context, c engine_context.RowsNexter) {
+		value, ok := c.KeyValues().Get("mykey")
+		if ok {
+			log.Println(value.(string))
 		} else {
-			cfg.Net = "tcp"
+			log.Println("mykey not found")
 		}
-		db, err := sql.Open("mysql", cfg.FormatDSN())
-		if err != nil {
-			t.Fatal("unable to initialize the MySQL driver", err)
-			return nil
-		}
-		return
+		c.Next(ctx)
 	})
-	engine.GlobalAdd(func(c context2.Contexter) {
-		c.KeyValues().Set("mykey", "myvalue")
+	engine.BeginMW().Prepend(func(ctx context.Context, c engine_context.Beginner) {
+		c.KeyValues().Set("transaction", "started")
+		c.Next(ctx)
 	})
-	engine.RowMiddleware().Add(func(c context2.Contexter, b vrows.Rower) vrows.Rower {
-		log.Println(c.KeyValues().MustGet("mykey").(string))
-		return b
+	engine.CommitMW().Prepend(func(ctx context.Context, c engine_context.Beginner) {
+		c.KeyValues().Set("transaction", "committed")
+		c.Next(ctx)
+	})
+	engine.RollbackMW().Prepend(func(ctx context.Context, c engine_context.Beginner) {
+		c.KeyValues().Set("transaction", "rolled back")
+		c.Next(ctx)
 	})
 	return engine
 }
@@ -291,7 +306,7 @@ func mustConnect(t *testing.T) (s vsql.SQLer) {
 // mustCreateTable creates a table with a "random" name (based on the current time) testing fatals are triggered if this fails
 func mustCreateTable(t *testing.T, execer vquery.Execer) (tableName string) {
 	tableName = fmt.Sprintf("t%d", nextId())
-	_, err := execer.Exec(context.Background(), param.NewAppend(
+	_, err := execer.Exec(context.Background(), vparam.NewAppend(
 		fmt.Sprint(`CREATE TABLE IF NOT EXISTS `, tableName,
 			` ( id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), age TINYINT UNSIGNED )`)))
 	if err != nil {
@@ -306,7 +321,7 @@ func mustDropTable(t *testing.T, execer vquery.Execer, tableName string) {
 		// do nothing
 		return
 	}
-	_, err := execer.Exec(context.Background(), param.New("DROP TABLE `"+tableName+"`"))
+	_, err := execer.Exec(context.Background(), vparam.New("DROP TABLE `"+tableName+"`"))
 	if err != nil {
 		t.Fatalf(`Unable to drop table named: "%s". Err: %#v`, tableName, err)
 	}

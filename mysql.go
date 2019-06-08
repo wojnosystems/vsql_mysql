@@ -17,7 +17,9 @@ package vsql_mysql
 
 import (
 	"database/sql"
-	"github.com/wojnosystems/vsql_engine/go_sql"
+	"github.com/wojnosystems/vsql/interpolation_strategy"
+	"github.com/wojnosystems/vsql_engine"
+	"github.com/wojnosystems/vsql_engine_go"
 )
 
 // Creates a new MySQL connection manager
@@ -27,6 +29,6 @@ import (
 //
 // @param driverFactory is where you create your traditional Go-lang database/sql.DB object. If nil is returned for db, then nil will be returned by this method
 // @return s, the SQLer object. Note, due to the way MySQL works, it does not support Nested transactions and, as such, this method does not return an object that supports that interface.
-func NewMySQL(driverFactory func() (db *sql.DB)) (engine go_sql.SQLEnginer) {
-	return go_sql.New(mySQLParamInterpolateStrategyFactoryDefault, driverFactory)
+func InstallMySQL(engine vsql_engine.SingleTXer, db *sql.DB) {
+	vsql_engine_go.InstallSingle(engine, db, func() interpolation_strategy.InterpolateStrategy { return &mySQLParamInterpolateStrategyDefault })
 }
