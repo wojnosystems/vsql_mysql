@@ -29,6 +29,6 @@ import (
 //
 // @param driverFactory is where you create your traditional Go-lang database/sql.DB object. If nil is returned for db, then nil will be returned by this method
 // @return s, the SQLer object. Note, due to the way MySQL works, it does not support Nested transactions and, as such, this method does not return an object that supports that interface.
-func InstallMySQL(engine vsql_engine.SingleTXer, db *sql.DB) {
+func Install(engine vsql_engine.SingleTXer, db *sql.DB) {
 	vsql_engine_go.InstallSingle(engine, db, func() interpolation_strategy.InterpolateStrategy { return &mySQLParamInterpolateStrategyDefault })
 }

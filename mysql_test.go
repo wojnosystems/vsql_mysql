@@ -278,7 +278,7 @@ func mustConnect(t *testing.T) (s vsql.SQLer) {
 	}
 
 	engine := vsql_engine.NewSingle()
-	InstallMySQL(engine, db)
+	Install(engine, db)
 	engine.RowsNextMW().Prepend(func(ctx context.Context, c engine_context.RowsNexter) {
 		value, ok := c.KeyValues().Get("mykey")
 		if ok {
