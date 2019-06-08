@@ -6,7 +6,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/wojnosystems/vsql v0.0.13
 	github.com/wojnosystems/vsql_engine v0.0.12
-	github.com/wojnosystems/vsql_engine_go v0.0.3
+	github.com/wojnosystems/vsql_engine_go v0.0.4
 	google.golang.org/appengine v1.6.0 // indirect
 )
 
